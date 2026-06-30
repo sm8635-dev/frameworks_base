@@ -89,6 +89,7 @@ import com.android.systemui.shared.system.QuickStepContract;
 import com.android.systemui.statusbar.phone.AutoHideController;
 import com.android.systemui.statusbar.phone.CentralSurfaces;
 import com.android.systemui.statusbar.phone.LightBarTransitionsController;
+import com.android.systemui.statusbar.policy.Offset;
 import com.android.systemui.utils.windowmanager.WindowManagerUtils;
 import com.android.wm.shell.back.BackAnimation;
 import com.android.wm.shell.pip.Pip;
@@ -179,12 +180,8 @@ public class NavigationBarView extends FrameLayout
     private boolean mShowSwipeUpUi;
     private UpdateActiveTouchRegionsCallback mUpdateActiveTouchRegionsCallback;
 
-    private int mBasePaddingBottom;
-    private int mBasePaddingLeft;
-    private int mBasePaddingRight;
-    private int mBasePaddingTop;
-
-    private ViewGroup mNavigationBarContents;
+    @Nullable
+    private ViewGroup mNavigationBarContents = null;
 
     private class NavTransitionListener implements TransitionListener {
         private boolean mBackTransitioning;
@@ -871,23 +868,20 @@ public class NavigationBarView extends FrameLayout
         mContextualButtonGroup.setButtonVisibility(R.id.accessibility_button, visible);
     }
 
-    public void shiftNavigationBarItems(int horizontalShift, int verticalShift) {
-        if (mNavigationBarContents == null) {
-            return;
-        }
+    public void offsetNavBar(Offset offset) {
         if (isGesturalMode(mNavBarMode)) {
             final NavigationHandle handle = (NavigationHandle) getHomeHandle().getCurrentView();
             if (handle != null) {
-                handle.shiftHandle(verticalShift);
+                handle.setTranslationY(offset.getY());
+                handle.invalidate();
             }
             return;
         }
-        mNavigationBarContents.setPaddingRelative(
-            mBasePaddingLeft + horizontalShift,
-            mBasePaddingTop + verticalShift,
-            mBasePaddingRight + horizontalShift,
-            mBasePaddingBottom - verticalShift
-        );
+        if (mNavigationBarContents == null) {
+            return;
+        }
+        mNavigationBarContents.setTranslationX(offset.getX());
+        mNavigationBarContents.setTranslationY(offset.getY());
         invalidate();
     }
 
@@ -898,11 +892,6 @@ public class NavigationBarView extends FrameLayout
         mNavigationInflaterView.setButtonDispatchers(mButtonDispatchers);
 
         mNavigationBarContents = (ViewGroup) findViewById(R.id.nav_buttons);
-
-        mBasePaddingLeft = mNavigationBarContents.getPaddingStart();
-        mBasePaddingTop = mNavigationBarContents.getPaddingTop();
-        mBasePaddingRight = mNavigationBarContents.getPaddingEnd();
-        mBasePaddingBottom = mNavigationBarContents.getPaddingBottom();
 
         updateOrientationViews();
         reloadNavIcons();

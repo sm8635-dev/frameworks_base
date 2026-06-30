@@ -203,6 +203,7 @@ object KeyguardRootViewBinder {
                             childViews[sliceViewId]?.alpha = alpha
                             childViews[weatherAreaId]?.alpha = alpha
                             childViews[weatherAreaInlineId]?.alpha = alpha
+                            childViews[dateViewId]?.alpha = alpha
                         }
                     }
 
@@ -240,6 +241,7 @@ object KeyguardRootViewBinder {
                             childViews[sliceViewId]?.translationY = y
                             childViews[weatherAreaId]?.translationY = y
                             childViews[weatherAreaInlineId]?.translationY = y
+                            childViews[dateViewId]?.translationY = y
                         }
                     }
 
@@ -255,6 +257,7 @@ object KeyguardRootViewBinder {
                                     childViews[sliceViewId]?.translationX = px
                                     childViews[weatherAreaId]?.translationX = px
                                     childViews[weatherAreaInlineId]?.translationX = px
+                                    childViews[dateViewId]?.translationX = px
                                 }
 
                                 state.isToOrFrom(KeyguardState.GLANCEABLE_HUB) -> {
@@ -304,6 +307,7 @@ object KeyguardRootViewBinder {
                             childViews[sliceViewId]?.visibility = visibility
                             childViews[weatherAreaId]?.visibility = visibility
                             childViews[weatherAreaInlineId]?.visibility = visibility
+                            childViews[dateViewId]?.visibility = visibility
                         }
                     }
 
@@ -414,6 +418,29 @@ object KeyguardRootViewBinder {
                 override fun onChildViewAdded(parent: View, child: View) {
                     childViews.put(child.id, child)
                     onViewAdded(child.id, child)
+                    val movement = viewModel.currentMovement
+                    with(movement) {
+                        when (child.id) {
+                            burnInLayerId, aodPromotedNotificationId,
+                            aodNotificationIconContainerId, sliceViewId,
+                            weatherAreaId, weatherAreaInlineId, dateViewId -> {
+                                child.translationY = translationY.toFloat()
+                                child.translationX = translationX.toFloat()
+                            }
+                            largeClockId -> {
+                                child.translationY = translationY.toFloat()
+                                if (scaleClockOnly) {
+                                    child.scaleX = scale
+                                    child.scaleY = scale
+                                }
+                            }
+                        }
+                        if (child.id == largeClockDateId &&
+                            com.android.systemui.shared.Flags.clockReactiveSmartspaceLayout()
+                        ) {
+                            child.translationY = translationY.toFloat()
+                        }
+                    }
                 }
 
                 override fun onChildViewRemoved(parent: View, child: View) {
@@ -593,6 +620,7 @@ object KeyguardRootViewBinder {
     private val sliceViewId = R.id.keyguard_slice_view
     private val weatherAreaId = R.id.keyguard_weather_area
     private val weatherAreaInlineId = R.id.weather_inline_text
+    private val dateViewId = R.id.keyguard_date_view
     private val aodPromotedNotificationId = AodPromotedNotificationSection.viewId
     private val aodNotificationIconContainerId = R.id.aod_notification_icon_container
     private val largeClockId = ClockViewIds.LOCKSCREEN_CLOCK_VIEW_LARGE

@@ -402,7 +402,6 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
     private final AutoHideController mAutoHideController;
 
     private final Point mCurrentDisplaySize = new Point();
-    private BurnInProtectionController mBurnInProtectionController;
 
     private PhoneStatusBarViewController mPhoneStatusBarViewController;
     private PhoneStatusBarTransitions mStatusBarTransitions;
@@ -637,6 +636,8 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
     private final SecureSettings mSecureSettings;
     private final GlobalSettings mGlobalSettings;
 
+    private final BurnInProtectionController mBurnInProtectionController;
+
     private final IActivityTaskManager mActivityTaskManager;
     private final HandlerThread mGamingHandlerThread;
     private final Object mGameLock = new Object();
@@ -763,13 +764,13 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
             QuickAccessWalletController walletController,
             WindowManager windowManager,
             WindowManagerProvider windowManagerProvider,
-            BurnInProtectionController burnInProtectionController,
             SystemSettings systemSettings,
             SecureSettings secureSettings,
             GlobalSettings globalSettings,
             BluetoothController bluetoothController,
             ColorDisplayManager colorManager,
-            FlashlightController flashlightController
+            FlashlightController flashlightController,
+            BurnInProtectionController burnInProtectionController
     ) {
         mContext = context;
         mNotificationsController = notificationsController;
@@ -871,6 +872,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
         }
         mEmergencyGestureIntentFactory = emergencyGestureIntentFactory;
         mWalletController = walletController;
+        mBurnInProtectionController = burnInProtectionController;
 
         mLockscreenShadeTransitionController = lockscreenShadeTransitionController;
         mStartingSurfaceOptional = startingSurfaceOptional;
@@ -889,8 +891,6 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
         ShadeExpansionChangeEvent currentState =
                 mShadeExpansionStateManager.addExpansionListener(shadeExpansionListener);
         shadeExpansionListener.onPanelExpansionChanged(currentState);
-
-        mBurnInProtectionController = burnInProtectionController;
 
         mSystemSettings = systemSettings;
         mSecureSettings = secureSettings;
@@ -924,8 +924,6 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
 
         mWindowManager = windowManager;
         mWindowManagerProvider = windowManagerProvider;
-
-        mBurnInProtectionController.setStatusBar(this);
 
         mGamingHandlerThread = new HandlerThread("GamingHandlerThread");
         mActivityTaskManager = ActivityTaskManager.getService();
@@ -1303,8 +1301,6 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
                         mShadeSurface.updateExpansionAndVisibility();
                         setBouncerShowingForStatusBarComponents(mBouncerShowing);
                         checkBarModes();
-                        mBurnInProtectionController.setPhoneStatusBarView(
-                            mPhoneStatusBarViewController.getView());
                     });
         }
         if (!StatusBarRootModernization.isEnabled() && !StatusBarConnectedDisplays.isEnabled()) {
@@ -1607,6 +1603,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
     protected void createNavigationBar(@Nullable RegisterStatusBarResult result) {
         StatusBarConnectedDisplays.assertInLegacyMode();
         mNavigationBarController.createNavigationBars(true /* includeDefaultDisplay */, result);
+        mBurnInProtectionController.setNavigationBarView(getNavigationBarView());
     }
 
     /**
@@ -2648,10 +2645,8 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
 
             updateNotificationPanelTouchState();
             getNotificationShadeWindowViewController().cancelCurrentTouch();
+            mBurnInProtectionController.stopShiftTimer();
 
-            if (mBurnInProtectionController != null) {
-                mBurnInProtectionController.stopShiftTimer();
-            }
             if (mLaunchCameraOnFinishedGoingToSleep) {
                 mLaunchCameraOnFinishedGoingToSleep = false;
 
@@ -2791,9 +2786,7 @@ public class CentralSurfacesImpl implements CoreStartable, CentralSurfaces {
                 }
             }
             updateScrimController();
-            if (mBurnInProtectionController != null) {
-                mBurnInProtectionController.startShiftTimer();
-            }
+            mBurnInProtectionController.startShiftTimer();
         }
     };
 

@@ -19,6 +19,7 @@ package com.android.systemui.statusbar.phone;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Insets;
 import android.graphics.Rect;
 import android.graphics.Region;
@@ -47,6 +48,7 @@ import com.android.systemui.shade.ShadeExpandsOnStatusBarLongPress;
 import com.android.systemui.shade.StatusBarLongPressGestureDetector;
 import com.android.systemui.statusbar.core.StatusBarConnectedDisplays;
 import com.android.systemui.statusbar.phone.userswitcher.StatusBarUserSwitcherContainer;
+import com.android.systemui.statusbar.policy.Offset;
 import com.android.systemui.statusbar.window.StatusBarWindowControllerStore;
 import com.android.systemui.user.ui.binder.StatusBarUserChipViewBinder;
 import com.android.systemui.user.ui.viewmodel.StatusBarUserChipViewModel;
@@ -57,13 +59,6 @@ import java.util.function.BooleanSupplier;
 
 public class PhoneStatusBarView extends FrameLayout {
     private static final String TAG = "PhoneStatusBarView";
-
-    private int mBasePaddingBottom;
-    private int mBasePaddingLeft;
-    private int mBasePaddingRight;
-    private int mBasePaddingTop;
-
-    private ViewGroup mStatusBarContents;
 
     private DarkReceiver mBattery;
     private DarkReceiver mClock;
@@ -88,6 +83,8 @@ public class PhoneStatusBarView extends FrameLayout {
     private HasCornerCutoutFetcher mHasCornerCutoutFetcher;
     @Nullable
     private InsetsFetcher mInsetsFetcher;
+    @Nullable
+    private ViewGroup mStatusBarContents = null;
     private int mDensity;
     private float mFontScale;
     private StatusBarLongPressGestureDetector mStatusBarLongPressGestureDetector;
@@ -138,20 +135,6 @@ public class PhoneStatusBarView extends FrameLayout {
         getViewRootImpl().setTouchableRegion(touchableRegion);
     }
 
-    public void shiftStatusBarItems(int horizontalShift, int verticalShift) {
-        if (mStatusBarContents == null) {
-            return;
-        }
-
-        mStatusBarContents.setPaddingRelative(
-            mBasePaddingLeft + horizontalShift,
-            mBasePaddingTop + verticalShift,
-            mBasePaddingRight + horizontalShift,
-            mBasePaddingBottom - verticalShift
-        );
-        invalidate();
-    }
-
     @Override
     public void onFinishInflate() {
         super.onFinishInflate();
@@ -160,11 +143,6 @@ public class PhoneStatusBarView extends FrameLayout {
         mNetworkTraffic = findViewById(R.id.networkTraffic);
         mCutoutSpace = findViewById(R.id.cutout_space_view);
         mStatusBarContents = (ViewGroup) findViewById(R.id.status_bar_contents);
-
-        mBasePaddingLeft = mStatusBarContents.getPaddingStart();
-        mBasePaddingTop = mStatusBarContents.getPaddingTop();
-        mBasePaddingRight = mStatusBarContents.getPaddingEnd();
-        mBasePaddingBottom = mStatusBarContents.getPaddingBottom();
 
         updateResources();
     }
@@ -214,6 +192,15 @@ public class PhoneStatusBarView extends FrameLayout {
             requestLayout();
         }
         return super.onApplyWindowInsets(insets);
+    }
+
+    public void offsetStatusBar(Offset offset) {
+        if (mStatusBarContents == null) {
+            return;
+        }
+        mStatusBarContents.setTranslationX(offset.getX());
+        mStatusBarContents.setTranslationY(offset.getY());
+        invalidate();
     }
 
     /**
@@ -379,7 +366,7 @@ public class PhoneStatusBarView extends FrameLayout {
         int statusBarPaddingStart = getResources().getDimensionPixelSize(
                 R.dimen.status_bar_padding_start);
 
-        findViewById(R.id.status_bar_contents).setPaddingRelative(
+        mStatusBarContents.setPaddingRelative(
                 statusBarPaddingStart,
                 getResources().getDimensionPixelSize(R.dimen.status_bar_padding_top),
                 getResources().getDimensionPixelSize(R.dimen.status_bar_padding_end),
